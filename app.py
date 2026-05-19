@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 
 st.set_page_config(page_title="Lingam Supermarket", layout="wide", page_icon="🛒")
 
 st.title("🛒 Lingam Supermarket Analytics Dashboard")
-st.markdown("### Professional Sales & Inventory Report")
+st.markdown("### Professional Sales & Inventory Intelligence")
 
 # ====================== FILE UPLOAD ======================
 uploaded_file = st.file_uploader("📤 Upload Your Sales Excel File", type=["xlsx", "xls"])
@@ -57,7 +57,14 @@ if uploaded_file:
     col4.metric("📈 Avg Bill", f"₹{avg_bill:.2f}")
 
     # ====================== TABS ======================
-    tab1, tab2, tab3, tab4 = st.tabs(["📈 Sales Trend", "🏆 Product Performance", "📊 Category & Payment", "📦 Inventory Insights"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📈 Sales Trend", 
+        "🏆 Product Performance", 
+        "📊 Category & Payment", 
+        "📦 Inventory Insights",
+        "☠️ Dead Stock",
+        "📦 Stock Movement"
+    ])
 
     with tab1:
         if 'date' in filtered_df.columns:
@@ -65,25 +72,17 @@ if uploaded_file:
             st.plotly_chart(px.line(daily, x='date', y='total_amount', title="Daily Sales Trend"), use_container_width=True)
 
     with tab2:  # Product Performance
-        st.subheader("Top & Least Selling Products")
-        col_a, col_b = st.columns(2)
-        
-        with col_a:
-            top10 = filtered_df.groupby('product_name')['total_amount'].sum().nlargest(10).reset_index()
-            st.plotly_chart(px.bar(top10, x='total_amount', y='product_name', orientation='h', 
-                                  title="Highest Revenue Products (Top 10)"), use_container_width=True)
-        
-        with col_b:
-            least10 = filtered_df.groupby('product_name')['total_amount'].sum().nsmallest(10).reset_index()
-            st.plotly_chart(px.bar(least10, x='total_amount', y='product_name', orientation='h', 
-                                  title="Least Selling Products"), use_container_width=True)
-        
+        st.subheader("Highest Revenue Products")
+        top_revenue = filtered_df.groupby('product_name')['total_amount'].sum().nlargest(15).reset_index()
+        st.plotly_chart(px.bar(top_revenue, x='total_amount', y='product_name', orientation='h', 
+                              title="Highest Revenue Products"), use_container_width=True)
+
         st.subheader("Most Sold by Quantity")
         top_qty = filtered_df.groupby('product_name')['quantity'].sum().nlargest(10).reset_index()
         st.plotly_chart(px.bar(top_qty, x='quantity', y='product_name', orientation='h', 
-                              title="Top 10 Products by Quantity Sold"), use_container_width=True)
+                              title="Top Products by Quantity Sold"), use_container_width=True)
 
-    with tab3:  # Category & Payment
+    with tab3:
         c1, c2 = st.columns(2)
         with c1:
             if 'category' in filtered_df.columns:
@@ -96,27 +95,45 @@ if uploaded_file:
 
     with tab4:  # Inventory Insights
         st.subheader("📦 Inventory Insights")
+        product_summary = filtered_df.groupby('product_name').agg({
+            'quantity': 'sum',
+            'total_amount': 'sum'
+        }).reset_index().rename(columns={'quantity': 'Total_Sold'})
         
-        # For demo - assuming you will add inventory data later
-        if 'product_name' in filtered_df.columns:
-            stock_summary = filtered_df.groupby('product_name').agg({
-                'quantity': 'sum',
-                'total_amount': 'sum'
-            }).reset_index()
-            stock_summary = stock_summary.rename(columns={'quantity': 'Total_Sold'})
-            
-            st.dataframe(stock_summary, use_container_width=True)
-            
-            # Low Stock Alert (Demo)
-            st.subheader("⚠️ Low Stock Alert")
-            low_stock = stock_summary[stock_summary['Total_Sold'] > 50]  # Example threshold
-            if not low_stock.empty:
-                st.warning("Following products have high movement - Consider restocking:")
-                st.dataframe(low_stock)
-            else:
-                st.info("No critical low stock detected in this period.")
+        st.dataframe(product_summary.sort_values('Total_Sold', ascending=False), use_container_width=True)
+
+    with tab5:  # Dead Stock
+        st.subheader("☠️ Dead Stock Analysis")
+        all_products = filtered_df.groupby('product_name').agg({
+            'quantity': 'sum',
+            'total_amount': 'sum',
+            'date': 'max'
+        }).reset_index()
         
-        st.info("💡 Tip: Upload a separate Inventory sheet with Current Stock for better alerts.")
+        # Products with very low or zero sales (Dead Stock)
+        dead_stock = all_products[all_products['quantity'] <= 2]  # Adjust threshold as needed
+        
+        if not dead_stock.empty:
+            st.warning(f"⚠️ Found {len(dead_stock)} Dead / Slow Moving Products")
+            st.dataframe(dead_stock.sort_values('quantity'), use_container_width=True)
+        else:
+            st.success("No dead stock detected in selected period.")
+
+    with tab6:  # Stock Movement
+        st.subheader("📦 Stock Movement (In vs Out)")
+        st.info("💡 For accurate Stock Movement, upload a file with both Sales + Purchase/Inward data.")
+        
+        # Current simulation based on sales (Out)
+        movement = filtered_df.groupby('date').agg({
+            'quantity': 'sum',
+            'total_amount': 'sum'
+        }).reset_index()
+        movement = movement.rename(columns={'quantity': 'Quantity_Sold_Out'})
+        
+        st.plotly_chart(px.bar(movement, x='date', y='Quantity_Sold_Out', 
+                              title="Daily Stock Out (Sales)"), use_container_width=True)
+        
+        st.warning("Note: Stock In (Purchase) data is not available in current upload. Add it for full In vs Out comparison.")
 
     # ====================== DOWNLOAD REPORT ======================
     output = io.BytesIO()
@@ -132,4 +149,4 @@ if uploaded_file:
     )
 
 else:
-    st.info("👆 Please upload your sales Excel file to see the complete dashboard")
+    st.info("👆 Please upload your sales Excel file to see the complete professional dashboard")
