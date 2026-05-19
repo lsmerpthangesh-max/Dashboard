@@ -20,99 +20,263 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── fonts & base ── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-/* ── sidebar ── */
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0d2137 0%, #1a3c5e 60%, #0d2137 100%) !important;
-}
-[data-testid="stSidebar"] * { color: #e8f4fd !important; }
-[data-testid="stSidebar"] .stSelectbox label,
-[data-testid="stSidebar"] .stMultiSelect label,
-[data-testid="stSidebar"] .stDateInput label { color: #90caf9 !important; font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
-
-/* ── main bg ── */
-.main { background: #f0f4f8; }
+/* ════════════════════════════════════════
+   BASE & MAIN AREA
+════════════════════════════════════════ */
+html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+.main { background: #f0f4f8 !important; }
 .block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 1600px; }
 
-/* ── hero banner ── */
+/* Force all main-area text to dark so nothing disappears on white */
+.main p, .main span, .main div, .main label,
+.main h1, .main h2, .main h3, .main h4, .main li { color: #1a2e44 !important; }
+
+/* ════════════════════════════════════════
+   SIDEBAR — full dark navy theme
+════════════════════════════════════════ */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0a1929 0%, #0d2137 40%, #112d4e 100%) !important;
+    border-right: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+/* Every text element inside sidebar → light */
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] div,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] small,
+[data-testid="stSidebar"] .st-emotion-cache-1629p8f,
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] * {
+    color: #dce9f7 !important;
+}
+
+/* Sidebar section headings */
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+}
+
+/* Sidebar widget labels */
+[data-testid="stSidebar"] .stSelectbox > label,
+[data-testid="stSidebar"] .stDateInput  > label,
+[data-testid="stSidebar"] .stFileUploader > label {
+    color: #90caf9 !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+
+/* Sidebar selectbox/dropdown box */
+[data-testid="stSidebar"] .stSelectbox > div > div,
+[data-testid="stSidebar"] .stDateInput   > div > div input {
+    background: rgba(255,255,255,0.08) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+}
+[data-testid="stSidebar"] .stSelectbox > div > div:hover {
+    border-color: #64b5f6 !important;
+}
+[data-testid="stSidebar"] .stSelectbox svg { color: #90caf9 !important; fill: #90caf9 !important; }
+
+/* Sidebar date input text */
+[data-testid="stSidebar"] input[type="text"] {
+    color: #ffffff !important;
+    background: rgba(255,255,255,0.08) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+}
+
+/* Sidebar divider */
+[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.12) !important;
+    margin: 1rem 0 !important;
+}
+
+/* ── FILE UPLOADER in sidebar ── */
+/* Card/box */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] {
+    background: rgba(255,255,255,0.06) !important;
+    border: 1.5px dashed rgba(100,181,246,0.55) !important;
+    border-radius: 10px !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.6rem !important;
+    transition: border-color 0.2s !important;
+}
+[data-testid="stSidebar"] [data-testid="stFileUploader"]:hover {
+    border-color: #64b5f6 !important;
+    background: rgba(255,255,255,0.1) !important;
+}
+/* "Drag and drop" text */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] span,
+[data-testid="stSidebar"] [data-testid="stFileUploader"] p,
+[data-testid="stSidebar"] [data-testid="stFileUploader"] small {
+    color: #b0cfe8 !important;
+    font-size: 0.78rem !important;
+}
+/* Browse button inside uploader */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+    background: rgba(21,101,192,0.75) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(100,181,246,0.5) !important;
+    border-radius: 6px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    padding: 0.3rem 0.8rem !important;
+}
+[data-testid="stSidebar"] [data-testid="stFileUploader"] button:hover {
+    background: rgba(21,101,192,1) !important;
+}
+/* Uploaded file name chip */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"],
+[data-testid="stSidebar"] [data-testid="stFileUploader"] [class*="uploadedFile"] {
+    background: rgba(46,125,50,0.25) !important;
+    border: 1px solid rgba(102,187,106,0.5) !important;
+    border-radius: 6px !important;
+    color: #a5d6a7 !important;
+}
+/* ✕ delete button on uploaded chip */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stFileUploaderDeleteBtn"] button {
+    background: transparent !important;
+    border: none !important;
+    color: #ef9a9a !important;
+}
+
+/* ════════════════════════════════════════
+   HERO BANNER
+════════════════════════════════════════ */
 .hero-banner {
-    background: linear-gradient(135deg, #0d2137 0%, #1a4a7a 50%, #1565c0 100%);
-    border-radius: 16px; padding: 2rem 2.5rem; margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, #0a1929 0%, #0d2137 35%, #1565c0 100%);
+    border-radius: 18px; padding: 2rem 2.5rem; margin-bottom: 1.5rem;
     box-shadow: 0 8px 32px rgba(13,33,55,0.35);
     position: relative; overflow: hidden;
 }
 .hero-banner::before {
-    content: "🛒"; position: absolute; right: 2rem; top: 50%;
-    transform: translateY(-50%); font-size: 5rem; opacity: 0.12;
+    content: "🛒"; position: absolute; right: 2.5rem; top: 50%;
+    transform: translateY(-50%); font-size: 6rem; opacity: 0.08;
 }
-.hero-banner h1 { color: #fff; margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
-.hero-banner p  { color: #90caf9; margin: 0.25rem 0 0 0; font-size: 1rem; }
+.hero-banner::after {
+    content: ""; position: absolute; top: -40%; right: 15%;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(100,181,246,0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+.hero-banner h1 { color: #fff !important; margin: 0; font-size: 2.1rem; font-weight: 800; letter-spacing: -0.02em; }
+.hero-banner p  { color: #90caf9 !important; margin: 0.3rem 0 0 0; font-size: 1rem; font-weight: 400; }
 .hero-tag {
-    display: inline-block; background: rgba(255,255,255,0.15);
-    color: #fff; border-radius: 20px; padding: 2px 12px;
-    font-size: 0.75rem; font-weight: 600; margin-top: 0.5rem; backdrop-filter: blur(4px);
+    display: inline-block; background: rgba(255,255,255,0.12);
+    color: #e3f2fd !important; border-radius: 20px; padding: 3px 14px;
+    font-size: 0.75rem; font-weight: 600; margin-top: 0.6rem;
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(6px);
 }
 
-/* ── KPI cards ── */
+/* ════════════════════════════════════════
+   KPI CARDS
+════════════════════════════════════════ */
 .kpi-card {
-    background: #fff; border-radius: 14px; padding: 1.2rem 1.4rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-left: 5px solid #1565c0;
+    background: #ffffff !important;
+    border-radius: 14px; padding: 1.2rem 1.4rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border-left: 5px solid #1565c0;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 6px 24px rgba(0,0,0,0.13); }
-.kpi-label { color: #5c7491; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
-.kpi-value { color: #0d2137; font-size: 1.65rem; font-weight: 700; line-height: 1; }
-.kpi-sub   { color: #8aab8a; font-size: 0.78rem; margin-top: 0.3rem; }
+.kpi-label { color: #5c7491 !important; font-size: 0.73rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.35rem; }
+.kpi-value { color: #0d2137 !important; font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+.kpi-sub   { color: #6fa86f !important; font-size: 0.76rem; margin-top: 0.35rem; font-weight: 500; }
 .kpi-card.green  { border-left-color: #2e7d32; }
 .kpi-card.orange { border-left-color: #e65100; }
 .kpi-card.purple { border-left-color: #6a1b9a; }
 .kpi-card.teal   { border-left-color: #00695c; }
 .kpi-card.red    { border-left-color: #c62828; }
 
-/* ── section title ── */
+/* ════════════════════════════════════════
+   SECTION TITLES
+════════════════════════════════════════ */
 .section-title {
-    font-size: 1.1rem; font-weight: 700; color: #0d2137;
+    font-size: 1.05rem; font-weight: 700; color: #0d2137 !important;
     border-left: 4px solid #1565c0; padding-left: 0.75rem;
     margin: 1.5rem 0 0.75rem 0;
 }
 
-/* ── tab style override ── */
-[data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 0.4rem; background: #e8eef5; border-radius: 10px; padding: 4px; }
+/* ════════════════════════════════════════
+   TABS
+════════════════════════════════════════ */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 0.3rem; background: #dde5ef; border-radius: 12px; padding: 5px;
+}
 [data-testid="stTabs"] [data-baseweb="tab"] {
     border-radius: 8px; font-weight: 600; font-size: 0.82rem;
-    color: #5c7491 !important; padding: 0.5rem 1rem;
+    color: #3a5068 !important; padding: 0.45rem 0.9rem;
+    background: transparent !important;
 }
-[data-testid="stTabs"] [aria-selected="true"] { background: #1565c0 !important; color: #fff !important; }
+[data-testid="stTabs"] [aria-selected="true"] {
+    background: #1565c0 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(21,101,192,0.35) !important;
+}
 
-/* ── alert badges ── */
-.alert-danger { background: #fdecea; border: 1px solid #f5c6cb; border-radius: 8px; padding: 0.6rem 1rem; color: #c62828; font-size: 0.85rem; }
-.alert-warn   { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 0.6rem 1rem; color: #e65100; font-size: 0.85rem; }
-.alert-ok     { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 8px; padding: 0.6rem 1rem; color: #2e7d32; font-size: 0.85rem; }
+/* ════════════════════════════════════════
+   ALERT BADGES
+════════════════════════════════════════ */
+.alert-danger { background: #fdecea !important; border: 1px solid #f5c6cb; border-radius: 10px; padding: 0.7rem 1rem; color: #b71c1c !important; font-size: 0.87rem; font-weight: 500; }
+.alert-warn   { background: #fff8e1 !important; border: 1px solid #ffe082; border-radius: 10px; padding: 0.7rem 1rem; color: #bf360c !important; font-size: 0.87rem; font-weight: 500; }
+.alert-ok     { background: #e8f5e9 !important; border: 1px solid #a5d6a7; border-radius: 10px; padding: 0.7rem 1rem; color: #1b5e20 !important; font-size: 0.87rem; font-weight: 500; }
 
-/* ── upload card ── */
-.upload-section { background: #fff; border-radius: 14px; padding: 1.2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+/* ════════════════════════════════════════
+   CHARTS & DATAFRAMES
+════════════════════════════════════════ */
+.stPlotlyChart { border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.07); background: #fff; }
+[data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
 
-/* ── plotly chart border ── */
-.stPlotlyChart { border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+/* ════════════════════════════════════════
+   st.info / st.warning / st.success
+════════════════════════════════════════ */
+[data-testid="stAlert"] { border-radius: 10px !important; }
+[data-testid="stAlert"] p { color: inherit !important; }
 
-/* ── dataframe ── */
-[data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; }
-
-/* ── download button ── */
+/* ════════════════════════════════════════
+   DOWNLOAD BUTTONS
+════════════════════════════════════════ */
 [data-testid="stDownloadButton"] button {
     background: linear-gradient(135deg, #1565c0, #1a237e) !important;
     color: #fff !important; border-radius: 10px !important;
-    font-weight: 600 !important; padding: 0.6rem 1.6rem !important;
-    border: none !important; box-shadow: 0 3px 10px rgba(21,101,192,0.4) !important;
+    font-weight: 600 !important; padding: 0.6rem 1.4rem !important;
+    border: none !important;
+    box-shadow: 0 3px 10px rgba(21,101,192,0.4) !important;
     transition: all 0.2s !important;
 }
-[data-testid="stDownloadButton"] button:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 18px rgba(21,101,192,0.5) !important; }
+[data-testid="stDownloadButton"] button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 18px rgba(21,101,192,0.5) !important;
+}
 
-/* ── footer ── */
-.footer { text-align:center; color:#8aabb0; font-size:0.75rem; margin-top:2rem; padding:1rem; border-top:1px solid #dde4eb; }
+/* ════════════════════════════════════════
+   SPINNER
+════════════════════════════════════════ */
+[data-testid="stSpinner"] p { color: #1565c0 !important; font-weight: 500 !important; }
+
+/* ════════════════════════════════════════
+   SELECTBOX & INPUTS (main area)
+════════════════════════════════════════ */
+.stSelectbox label { color: #3a5068 !important; font-weight: 600 !important; font-size: 0.85rem !important; }
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+.footer {
+    text-align: center; color: #7a9ab0 !important;
+    font-size: 0.75rem; margin-top: 2rem; padding: 1rem;
+    border-top: 1px solid #d4dde8;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -164,15 +328,30 @@ st.markdown("""
 # ─────────────────────────────────────────────
 # FILE UPLOADS  (sidebar)
 # ─────────────────────────────────────────────
-st.sidebar.markdown("## 📂 Data Upload")
 with st.sidebar:
-    sales_file     = st.file_uploader("📊 Sales Data *",         type=["xlsx","xls"], key="sales")
-    purchase_file  = st.file_uploader("📦 Purchase / Stock-In",  type=["xlsx","xls"], key="purchase")
-    inventory_file = st.file_uploader("🏪 Inventory Master",     type=["xlsx","xls"], key="inventory")
-    customer_file  = st.file_uploader("👥 Customer Master",      type=["xlsx","xls"], key="customer")
+    st.markdown("""
+    <div style="text-align:center;padding:1.2rem 0.5rem 0.8rem 0.5rem;">
+      <div style="font-size:2rem;margin-bottom:0.3rem;">🛒</div>
+      <div style="color:#ffffff;font-size:1.05rem;font-weight:800;letter-spacing:0.03em;">Lingam Supermarket</div>
+      <div style="color:#64b5f6;font-size:0.72rem;font-weight:500;margin-top:2px;">Analytics Dashboard</div>
+    </div>
+    <hr style="border-color:rgba(255,255,255,0.1);margin:0 0 1rem 0;">
+    <div style="color:#90caf9;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.6rem;padding-left:0.2rem;">
+      📂 Data Upload
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("### 🔍 Filters")
+    sales_file     = st.file_uploader("📊 Sales Data  ★ Required",  type=["xlsx","xls"], key="sales",     help="Upload your daily sales transactions file")
+    purchase_file  = st.file_uploader("📦 Purchase / Stock-In",      type=["xlsx","xls"], key="purchase",  help="Upload supplier purchase orders")
+    inventory_file = st.file_uploader("🏪 Inventory Master",          type=["xlsx","xls"], key="inventory", help="Upload your product inventory list")
+    customer_file  = st.file_uploader("👥 Customer Master",           type=["xlsx","xls"], key="customer",  help="Upload your customer database")
+
+    st.markdown("""
+    <hr style="border-color:rgba(255,255,255,0.1);margin:0.8rem 0;">
+    <div style="color:#90caf9;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;padding-left:0.2rem;">
+      🔍 Filters
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # LOAD DATA
@@ -231,33 +410,72 @@ if sales_df is not None:
             ].copy()
 
         if 'category' in sales_df.columns:
-            cats = ["All"] + sorted(sales_df['category'].dropna().unique().tolist())
+            cats = ["All Categories"] + sorted(sales_df['category'].dropna().unique().tolist())
             sel_cat = st.selectbox("🏷️ Category", cats)
-            if sel_cat != "All":
+            if sel_cat != "All Categories":
                 filtered_sales = filtered_sales[filtered_sales['category'] == sel_cat]
 
         if 'payment_mode' in sales_df.columns:
-            pms = ["All"] + sorted(sales_df['payment_mode'].dropna().unique().tolist())
+            pms = ["All Payment Modes"] + sorted(sales_df['payment_mode'].dropna().unique().tolist())
             sel_pm = st.selectbox("💳 Payment Mode", pms)
-            if sel_pm != "All":
+            if sel_pm != "All Payment Modes":
                 filtered_sales = filtered_sales[filtered_sales['payment_mode'] == sel_pm]
+
+        st.markdown("""
+        <div style="margin-top:1.4rem;padding:0.8rem;background:rgba(255,255,255,0.05);
+                    border-radius:10px;border:1px solid rgba(255,255,255,0.08);">
+          <div style="color:#64b5f6;font-size:0.68rem;font-weight:700;text-transform:uppercase;
+                      letter-spacing:0.08em;margin-bottom:0.4rem;">ℹ️ Quick Guide</div>
+          <div style="color:#b0cfe8;font-size:0.71rem;line-height:1.6;">
+            ★ Sales file is required.<br>
+            Other files unlock extra tabs.<br>
+            Filters apply to all charts.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # NO DATA STATE
 # ─────────────────────────────────────────────
 if sales_df is None:
     st.markdown("""
-    <div style="background:#fff;border-radius:16px;padding:3rem 2rem;text-align:center;
-                box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-top:1rem;">
-      <div style="font-size:4rem;margin-bottom:1rem;">📤</div>
-      <h2 style="color:#0d2137;margin-bottom:0.5rem;">Upload Your Data to Get Started</h2>
-      <p style="color:#5c7491;max-width:500px;margin:0 auto 1.5rem auto;">
-        Use the sidebar to upload your Sales, Purchase, Inventory, and Customer Excel files.
-        Download the sample templates below to test with ready-made data.
+    <div style="background:#ffffff;border-radius:20px;padding:3rem 2.5rem;text-align:center;
+                box-shadow:0 6px 28px rgba(0,0,0,0.09);margin-top:0.5rem;
+                border:1px solid #e2ecf7;">
+      <div style="font-size:4rem;margin-bottom:0.8rem;">📤</div>
+      <h2 style="color:#0d2137 !important;font-size:1.6rem;font-weight:800;margin-bottom:0.5rem;">
+        Upload Your Data to Get Started
+      </h2>
+      <p style="color:#4a6680 !important;max-width:520px;margin:0 auto 2rem auto;font-size:0.95rem;line-height:1.6;">
+        Use the <strong style="color:#1565c0;">left sidebar</strong> to upload your Excel files.
+        Only <strong style="color:#1565c0;">Sales Data</strong> is required — the rest unlock extra analytics.
       </p>
-      <p style="color:#1565c0;font-weight:600;font-size:0.9rem;">
-        ℹ️ Download template files below to see the expected format.
-      </p>
+      <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-bottom:2rem;">
+        <div style="background:#f0f7ff;border:1px solid #bbdefb;border-radius:12px;padding:0.9rem 1.4rem;min-width:130px;">
+          <div style="font-size:1.4rem;">📊</div>
+          <div style="color:#1565c0 !important;font-weight:700;font-size:0.82rem;margin-top:0.3rem;">Sales Data</div>
+          <div style="color:#5c7491 !important;font-size:0.72rem;">★ Required</div>
+        </div>
+        <div style="background:#f1f8e9;border:1px solid #c5e1a5;border-radius:12px;padding:0.9rem 1.4rem;min-width:130px;">
+          <div style="font-size:1.4rem;">📦</div>
+          <div style="color:#2e7d32 !important;font-weight:700;font-size:0.82rem;margin-top:0.3rem;">Purchase Data</div>
+          <div style="color:#5c7491 !important;font-size:0.72rem;">Optional</div>
+        </div>
+        <div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:12px;padding:0.9rem 1.4rem;min-width:130px;">
+          <div style="font-size:1.4rem;">🏪</div>
+          <div style="color:#e65100 !important;font-weight:700;font-size:0.82rem;margin-top:0.3rem;">Inventory</div>
+          <div style="color:#5c7491 !important;font-size:0.72rem;">Optional</div>
+        </div>
+        <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:12px;padding:0.9rem 1.4rem;min-width:130px;">
+          <div style="font-size:1.4rem;">👥</div>
+          <div style="color:#6a1b9a !important;font-weight:700;font-size:0.82rem;margin-top:0.3rem;">Customers</div>
+          <div style="color:#5c7491 !important;font-size:0.72rem;">Optional</div>
+        </div>
+      </div>
+      <div style="background:#e8f0fe;border-radius:10px;padding:0.8rem 1.2rem;
+                  display:inline-block;color:#1a237e !important;font-size:0.85rem;font-weight:600;">
+        💡 Use the template Excel files provided to test the dashboard instantly
+      </div>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
