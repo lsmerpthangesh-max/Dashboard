@@ -345,6 +345,7 @@ with st.sidebar:
     purchase_file  = st.file_uploader("📦 Purchase / Stock-In",      type=["xlsx","xls"], key="purchase",  help="Upload supplier purchase orders")
     inventory_file = st.file_uploader("🏪 Inventory Master",          type=["xlsx","xls"], key="inventory", help="Upload your product inventory list")
     customer_file  = st.file_uploader("👥 Customer Master",           type=["xlsx","xls"], key="customer",  help="Upload your customer database")
+    overall_file   = st.file_uploader("📋 Overall Report Data",       type=["xlsx","xls"], key="overall",   help="Upload merged_data / overall_report_data.xlsx")
 
     st.markdown("""
     <hr style="border-color:rgba(255,255,255,0.1);margin:0.8rem 0;">
@@ -392,6 +393,35 @@ if inventory_file:
 
 if customer_file:
     customer_df = load_df(customer_file, date_cols=['join_date'])
+
+# ── Overall Report data ──────────────────────────────────────────────────────
+overall_inv_df  = None
+overall_inv2_df = None
+
+if overall_file:
+    try:
+        xl_or = pd.ExcelFile(overall_file)
+        if "Inventory_Monthly" in xl_or.sheet_names:
+            overall_inv_df = pd.read_excel(overall_file, sheet_name="Inventory_Monthly")
+            overall_inv_df.columns = [str(c).strip() for c in overall_inv_df.columns]
+            for nc in ['INWARD QTY','INWARD PRICE','RETAIL SALES QTY','RETAIL SALES VALUE','RETAIL PROFIT',
+                       'WHOLESALE SALES QTY','WHOLESALE VALUE','WHOLESALE PROFIT',
+                       'WHOLESALE_2 SALES QTY','WHOLESALE_2 VALUE','WHOLESALE_2 PROFIT',
+                       'CUSTOM SALES QTY','CUSTOM SALES VALUE','CUSTOM PROFIT',
+                       'REMAINING STOCK QTY','REMAINING STOCK VALUE',
+                       'PURCHASE STOCK VALUE','SALES VALUE','CURRENT PROFIT','FINAL PROFIT']:
+                if nc in overall_inv_df.columns:
+                    overall_inv_df[nc] = pd.to_numeric(overall_inv_df[nc], errors='coerce')
+        if "Invoice_Monthly" in xl_or.sheet_names:
+            overall_inv2_df = pd.read_excel(overall_file, sheet_name="Invoice_Monthly")
+            overall_inv2_df.columns = [str(c).strip() for c in overall_inv2_df.columns]
+            for nc in ['Quantity','Unit Price','Discount','Tax Percent','Total Amount']:
+                if nc in overall_inv2_df.columns:
+                    overall_inv2_df[nc] = pd.to_numeric(overall_inv2_df[nc], errors='coerce')
+            if 'Bill Date' in overall_inv2_df.columns:
+                overall_inv2_df['Bill Date'] = pd.to_datetime(overall_inv2_df['Bill Date'], errors='coerce')
+    except Exception as e:
+        st.sidebar.warning(f"Overall file issue: {e}")
 
 # ─────────────────────────────────────────────
 # SIDEBAR FILTERS (after data loaded)
@@ -528,7 +558,8 @@ tabs = st.tabs([
     "📅 Monthly Report",
     "📆 Yearly Report",
     "🚨 Alerts",
-    "📥 Download Reports"
+    "📥 Download Reports",
+    "📋 Overall Report"
 ])
 
 # ────────────────────────────────────
@@ -1093,6 +1124,370 @@ with tabs[9]:
                                    file_name=f"lingam_deadstock_{datetime.now().strftime('%Y%m%d')}.xlsx",
                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                    use_container_width=True)
+
+# ────────────────────────────────────
+# TAB 11: OVERALL REPORT
+# ────────────────────────────────────
+with tabs[10]:
+    st.markdown('<div class="section-title">📋 Overall Report — Inventory & Invoice Analytics</div>', unsafe_allow_html=True)
+
+    if overall_inv_df is None and overall_inv2_df is None:
+        st.markdown("""
+        <div style="background:#fff;border-radius:16px;padding:3rem 2rem;text-align:center;
+                    box-shadow:0 4px 20px rgba(0,0,0,0.07);border:1px solid #e2ecf7;">
+          <div style="font-size:3.5rem;margin-bottom:0.8rem;">📋</div>
+          <h3 style="color:#0d2137 !important;font-weight:800;margin-bottom:0.5rem;">Upload Overall Report Data</h3>
+          <p style="color:#4a6680 !important;max-width:480px;margin:0 auto 1rem auto;font-size:0.92rem;line-height:1.6;">
+            Upload the <strong>overall_report_data.xlsx</strong> file (or your merged_data file)
+            using the <strong>📋 Overall Report Data</strong> uploader in the sidebar.<br><br>
+            The file must have sheets: <code>Inventory_Monthly</code> and <code>Invoice_Monthly</code>.
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # ── MONTH SELECTOR ────────────────────────────────────────────────────
+        all_months = []
+        if overall_inv_df is not None and 'Month' in overall_inv_df.columns:
+            all_months = sorted(overall_inv_df['Month'].dropna().unique().tolist())
+        elif overall_inv2_df is not None and 'Month' in overall_inv2_df.columns:
+            all_months = sorted(overall_inv2_df['Month'].dropna().unique().tolist())
+
+        month_labels = {m: pd.Timestamp(m+"-01").strftime("%B %Y") for m in all_months}
+        label_to_key = {v: k for k, v in month_labels.items()}
+
+        col_sel, col_all = st.columns([3, 1])
+        with col_sel:
+            view_mode = st.radio("View Mode", ["Single Month", "All Months (Full Year)"], horizontal=True, label_visibility="collapsed")
+        with col_all:
+            if all_months:
+                selected_label = st.selectbox("Select Month", list(month_labels.values()),
+                                               index=len(month_labels)-1,
+                                               disabled=(view_mode=="All Months (Full Year)"))
+                selected_month = label_to_key.get(selected_label, all_months[-1]) if all_months else None
+
+        # Filter by month
+        def filt_month(df, col='Month'):
+            if df is None or col not in df.columns: return df
+            if view_mode == "All Months (Full Year)": return df
+            return df[df[col] == selected_month].copy()
+
+        inv_f  = filt_month(overall_inv_df)
+        inv2_f = filt_month(overall_inv2_df)
+
+        period_label = selected_label if view_mode == "Single Month" else "Full Year 2024"
+        st.markdown(f"<div style='background:#e8f0fe;border-radius:8px;padding:0.5rem 1rem;"
+                    f"color:#1a237e !important;font-size:0.85rem;font-weight:600;margin-bottom:1rem;display:inline-block;'>"
+                    f"📅 Showing: {period_label}</div>", unsafe_allow_html=True)
+
+        # ── TOP KPIs ──────────────────────────────────────────────────────────
+        if inv_f is not None and len(inv_f):
+            tot_inward_val   = inv_f['PURCHASE STOCK VALUE'].sum() if 'PURCHASE STOCK VALUE' in inv_f.columns else 0
+            tot_sales_val    = inv_f['SALES VALUE'].sum() if 'SALES VALUE' in inv_f.columns else 0
+            tot_profit       = inv_f['FINAL PROFIT'].sum() if 'FINAL PROFIT' in inv_f.columns else 0
+            tot_remain_val   = inv_f['REMAINING STOCK VALUE'].sum() if 'REMAINING STOCK VALUE' in inv_f.columns else 0
+            tot_remain_qty   = inv_f['REMAINING STOCK QTY'].sum() if 'REMAINING STOCK QTY' in inv_f.columns else 0
+            profit_pct       = (tot_profit/tot_sales_val*100) if tot_sales_val else 0
+
+            k1,k2,k3,k4,k5,k6 = st.columns(6)
+            k1.markdown(kpi("🏭 Purchase Value",  f"₹{tot_inward_val:,.0f}", period_label), unsafe_allow_html=True)
+            k2.markdown(kpi("💰 Sales Value",     f"₹{tot_sales_val:,.0f}", "", "green"), unsafe_allow_html=True)
+            k3.markdown(kpi("📈 Gross Profit",    f"₹{tot_profit:,.0f}", "", "teal"), unsafe_allow_html=True)
+            k4.markdown(kpi("📊 Profit Margin",   f"{profit_pct:.1f}%", "", "purple"), unsafe_allow_html=True)
+            k5.markdown(kpi("📦 Remaining Stock", f"₹{tot_remain_val:,.0f}", "", "orange"), unsafe_allow_html=True)
+            k6.markdown(kpi("🔢 Remaining Qty",   f"{tot_remain_qty:,.0f}", "units", "red"), unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── SECTION A: INVENTORY ANALYTICS ───────────────────────────────────
+        if inv_f is not None and len(inv_f):
+            st.markdown('<div class="section-title">📦 Inventory Performance</div>', unsafe_allow_html=True)
+
+            # 1. Sales Value vs Purchase Value by Product
+            c1, c2 = st.columns(2)
+            with c1:
+                prod_grp = inv_f.groupby('PRODUCT NAME').agg(
+                    Purchase_Value=('PURCHASE STOCK VALUE','sum'),
+                    Sales_Value=('SALES VALUE','sum'),
+                    Profit=('FINAL PROFIT','sum')
+                ).reset_index().sort_values('Sales_Value', ascending=False).head(15)
+
+                fig = go.Figure()
+                fig.add_bar(x=prod_grp['PRODUCT NAME'], y=prod_grp['Purchase_Value'],
+                            name='Purchase Value', marker_color='#90caf9')
+                fig.add_bar(x=prod_grp['PRODUCT NAME'], y=prod_grp['Sales_Value'],
+                            name='Sales Value', marker_color='#1565c0')
+                apply_template(fig, "Purchase vs Sales Value — Top 15 Products")
+                fig.update_layout(barmode='group', xaxis_tickangle=-40, legend=dict(
+                    orientation='h', y=1.1, bgcolor='rgba(0,0,0,0)'))
+                st.plotly_chart(fig, use_container_width=True)
+
+            with c2:
+                # Profit by product (top 15)
+                prod_profit = inv_f.groupby('PRODUCT NAME')['FINAL PROFIT'].sum().reset_index()
+                prod_profit = prod_profit[prod_profit['FINAL PROFIT'] > 0].sort_values('FINAL PROFIT', ascending=False).head(15)
+                fig2 = px.bar(prod_profit, x='PRODUCT NAME', y='FINAL PROFIT',
+                              color='FINAL PROFIT', color_continuous_scale='Greens', text_auto='.2s')
+                apply_template(fig2, "Gross Profit by Product")
+                fig2.update_layout(coloraxis_showscale=False, xaxis_tickangle=-40)
+                st.plotly_chart(fig2, use_container_width=True)
+
+            # 2. Sales Channel breakdown — Retail / Wholesale / Custom
+            st.markdown('<div class="section-title">🔀 Sales Channel Breakdown</div>', unsafe_allow_html=True)
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+                channel_vals = {
+                    'Retail':    inv_f['RETAIL SALES VALUE'].sum()    if 'RETAIL SALES VALUE'    in inv_f.columns else 0,
+                    'Wholesale': inv_f['WHOLESALE VALUE'].sum()       if 'WHOLESALE VALUE'       in inv_f.columns else 0,
+                    'Wholesale2':inv_f['WHOLESALE_2 VALUE'].sum()     if 'WHOLESALE_2 VALUE'     in inv_f.columns else 0,
+                    'Custom':    inv_f['CUSTOM SALES VALUE'].sum()    if 'CUSTOM SALES VALUE'    in inv_f.columns else 0,
+                }
+                ch_df = pd.DataFrame({'Channel': list(channel_vals.keys()), 'Value': list(channel_vals.values())})
+                ch_df = ch_df[ch_df['Value'] > 0]
+                fig3 = px.pie(ch_df, names='Channel', values='Value', hole=0.45,
+                              color_discrete_sequence=PALETTE)
+                apply_template(fig3, "Revenue by Sales Channel")
+                st.plotly_chart(fig3, use_container_width=True)
+
+            with c2:
+                channel_profit = {
+                    'Retail':    inv_f['RETAIL PROFIT'].sum()    if 'RETAIL PROFIT'    in inv_f.columns else 0,
+                    'Wholesale': inv_f['WHOLESALE PROFIT'].sum() if 'WHOLESALE PROFIT' in inv_f.columns else 0,
+                    'Wholesale2':inv_f['WHOLESALE_2 PROFIT'].sum() if 'WHOLESALE_2 PROFIT' in inv_f.columns else 0,
+                    'Custom':    inv_f['CUSTOM PROFIT'].sum()    if 'CUSTOM PROFIT'    in inv_f.columns else 0,
+                }
+                cp_df = pd.DataFrame({'Channel': list(channel_profit.keys()), 'Profit': list(channel_profit.values())})
+                cp_df = cp_df[cp_df['Profit'] > 0]
+                fig4 = px.bar(cp_df, x='Channel', y='Profit', color='Channel',
+                              color_discrete_sequence=PALETTE, text_auto='.2s')
+                apply_template(fig4, "Profit by Sales Channel")
+                fig4.update_layout(showlegend=False)
+                st.plotly_chart(fig4, use_container_width=True)
+
+            with c3:
+                # Channel qty
+                channel_qty = {
+                    'Retail':    inv_f['RETAIL SALES QTY'].sum()    if 'RETAIL SALES QTY'    in inv_f.columns else 0,
+                    'Wholesale': inv_f['WHOLESALE SALES QTY'].sum() if 'WHOLESALE SALES QTY' in inv_f.columns else 0,
+                    'Wholesale2':inv_f['WHOLESALE_2 SALES QTY'].sum() if 'WHOLESALE_2 SALES QTY' in inv_f.columns else 0,
+                    'Custom':    inv_f['CUSTOM SALES QTY'].sum()    if 'CUSTOM SALES QTY'    in inv_f.columns else 0,
+                }
+                cq_df = pd.DataFrame({'Channel': list(channel_qty.keys()), 'Qty': list(channel_qty.values())})
+                cq_df = cq_df[cq_df['Qty'] > 0]
+                fig5 = px.pie(cq_df, names='Channel', values='Qty', hole=0.45,
+                              color_discrete_sequence=[PALETTE[i] for i in [1,4,2,5]])
+                apply_template(fig5, "Quantity by Sales Channel")
+                st.plotly_chart(fig5, use_container_width=True)
+
+            # 3. Category-wise summary
+            if 'Category' in inv_f.columns:
+                st.markdown('<div class="section-title">🏷️ Category Analysis</div>', unsafe_allow_html=True)
+                cat_grp = inv_f.groupby('Category').agg(
+                    Purchase_Value=('PURCHASE STOCK VALUE','sum'),
+                    Sales_Value=('SALES VALUE','sum'),
+                    Profit=('FINAL PROFIT','sum'),
+                    Products=('PRODUCT NAME','nunique'),
+                    Inward_Qty=('INWARD QTY','sum')
+                ).reset_index()
+                c1, c2 = st.columns(2)
+                with c1:
+                    fig6 = px.bar(cat_grp, x='Category', y=['Purchase_Value','Sales_Value'],
+                                  barmode='group', color_discrete_sequence=[PALETTE[0], PALETTE[1]],
+                                  text_auto='.2s')
+                    apply_template(fig6, "Category: Purchase vs Sales Value")
+                    fig6.update_layout(legend=dict(orientation='h', y=1.1, bgcolor='rgba(0,0,0,0)'))
+                    st.plotly_chart(fig6, use_container_width=True)
+                with c2:
+                    fig7 = px.treemap(cat_grp, path=['Category'], values='Sales_Value',
+                                      color='Profit', color_continuous_scale='RdYlGn',
+                                      hover_data=['Products','Inward_Qty'])
+                    apply_template(fig7, "Category Treemap — Sales Value (color = Profit)")
+                    st.plotly_chart(fig7, use_container_width=True)
+
+            # 4. Remaining stock risk
+            st.markdown('<div class="section-title">🏗️ Remaining Stock Overview</div>', unsafe_allow_html=True)
+            if 'REMAINING STOCK QTY' in inv_f.columns:
+                rem_df = inv_f.groupby('PRODUCT NAME').agg(
+                    Remaining_Qty=('REMAINING STOCK QTY','sum'),
+                    Remaining_Value=('REMAINING STOCK VALUE','sum'),
+                    Inward_Qty=('INWARD QTY','sum')
+                ).reset_index()
+                rem_df['Stock_Utilisation_%'] = ((rem_df['Inward_Qty'] - rem_df['Remaining_Qty'])
+                                                  / rem_df['Inward_Qty'] * 100).clip(0,100).round(1)
+                rem_df = rem_df.sort_values('Remaining_Value', ascending=False).head(20)
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    fig8 = px.bar(rem_df.head(15), x='PRODUCT NAME', y='Remaining_Value',
+                                  color='Remaining_Value', color_continuous_scale='Oranges', text_auto='.2s')
+                    apply_template(fig8, "Remaining Stock Value (Top 15)")
+                    fig8.update_layout(coloraxis_showscale=False, xaxis_tickangle=-40)
+                    st.plotly_chart(fig8, use_container_width=True)
+                with c2:
+                    fig9 = px.bar(rem_df.head(15), x='PRODUCT NAME', y='Stock_Utilisation_%',
+                                  color='Stock_Utilisation_%', color_continuous_scale='RdYlGn',
+                                  text_auto='.1f')
+                    apply_template(fig9, "Stock Utilisation % (100% = fully sold)")
+                    fig9.update_layout(coloraxis_showscale=False, xaxis_tickangle=-40, yaxis_range=[0,110])
+                    st.plotly_chart(fig9, use_container_width=True)
+
+            # 5. Monthly trend (only in All Months view)
+            if view_mode == "All Months (Full Year)" and 'Month' in overall_inv_df.columns:
+                st.markdown('<div class="section-title">📆 Monthly Inventory Trends</div>', unsafe_allow_html=True)
+                mon_trend = overall_inv_df.groupby('Month').agg(
+                    Purchase_Value=('PURCHASE STOCK VALUE','sum'),
+                    Sales_Value=('SALES VALUE','sum'),
+                    Profit=('FINAL PROFIT','sum'),
+                    Remaining_Value=('REMAINING STOCK VALUE','sum')
+                ).reset_index().sort_values('Month')
+                mon_trend['Month_Label'] = mon_trend['Month'].apply(
+                    lambda m: pd.Timestamp(m+"-01").strftime("%b %Y"))
+
+                fig10 = go.Figure()
+                fig10.add_trace(go.Scatter(x=mon_trend['Month_Label'], y=mon_trend['Purchase_Value'],
+                                           name='Purchase Value', line=dict(color='#90caf9', width=2.5), mode='lines+markers'))
+                fig10.add_trace(go.Scatter(x=mon_trend['Month_Label'], y=mon_trend['Sales_Value'],
+                                           name='Sales Value', line=dict(color='#1565c0', width=2.5), mode='lines+markers'))
+                fig10.add_trace(go.Scatter(x=mon_trend['Month_Label'], y=mon_trend['Profit'],
+                                           name='Profit', line=dict(color='#2e7d32', width=2, dash='dash'), mode='lines+markers'))
+                apply_template(fig10, "Monthly: Purchase Value vs Sales Value vs Profit")
+                fig10.update_layout(legend=dict(orientation='h', y=1.1, bgcolor='rgba(0,0,0,0)'))
+                st.plotly_chart(fig10, use_container_width=True)
+
+                # Profit margin monthly
+                mon_trend['Profit_Margin_%'] = (mon_trend['Profit'] / mon_trend['Sales_Value'] * 100).round(2)
+                fig11 = px.bar(mon_trend, x='Month_Label', y='Profit_Margin_%',
+                               color='Profit_Margin_%', color_continuous_scale='RdYlGn', text_auto='.1f')
+                apply_template(fig11, "Monthly Profit Margin %")
+                fig11.update_layout(coloraxis_showscale=False)
+                st.plotly_chart(fig11, use_container_width=True)
+
+            # 6. Summary table
+            st.markdown('<div class="section-title">📊 Detailed Inventory Table</div>', unsafe_allow_html=True)
+            show_cols = [c for c in ['PRODUCT NAME','Category','INWARD QTY','INWARD PRICE',
+                          'RETAIL SALES QTY','RETAIL SALES VALUE','RETAIL PROFIT',
+                          'WHOLESALE VALUE','WHOLESALE PROFIT',
+                          'REMAINING STOCK QTY','REMAINING STOCK VALUE',
+                          'PURCHASE STOCK VALUE','SALES VALUE','FINAL PROFIT'] if c in inv_f.columns]
+            inv_table = inv_f[show_cols].copy()
+            for mc in ['RETAIL SALES VALUE','RETAIL PROFIT','WHOLESALE VALUE','WHOLESALE PROFIT',
+                       'REMAINING STOCK VALUE','PURCHASE STOCK VALUE','SALES VALUE','FINAL PROFIT']:
+                if mc in inv_table.columns:
+                    inv_table[mc] = inv_table[mc].apply(lambda x: f"₹{x:,.0f}" if pd.notna(x) else '-')
+            st.dataframe(inv_table, use_container_width=True, hide_index=True)
+
+        # ── SECTION B: INVOICE ANALYTICS ─────────────────────────────────────
+        if inv2_f is not None and len(inv2_f):
+            st.markdown('<div class="section-title">🧾 Invoice & Sales Analytics</div>', unsafe_allow_html=True)
+
+            iv_rev    = inv2_f['Total Amount'].sum() if 'Total Amount' in inv2_f.columns else 0
+            iv_bills  = inv2_f['Invoice No.'].nunique() if 'Invoice No.' in inv2_f.columns else len(inv2_f)
+            iv_qty    = inv2_f['Quantity'].sum() if 'Quantity' in inv2_f.columns else 0
+            iv_avg    = iv_rev / iv_bills if iv_bills else 0
+
+            k1, k2, k3, k4 = st.columns(4)
+            k1.markdown(kpi("💰 Invoice Revenue",  f"₹{iv_rev:,.0f}",  period_label), unsafe_allow_html=True)
+            k2.markdown(kpi("🧾 Invoices Raised",  f"{iv_bills:,}",    "", "green"),   unsafe_allow_html=True)
+            k3.markdown(kpi("📦 Units Invoiced",   f"{iv_qty:,.0f}",   "", "orange"),  unsafe_allow_html=True)
+            k4.markdown(kpi("📈 Avg Invoice Value",f"₹{iv_avg:,.0f}",  "", "purple"),  unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+
+            with c1:
+                # Top products by invoice value
+                if 'Item Name' in inv2_f.columns and 'Total Amount' in inv2_f.columns:
+                    top_inv = inv2_f.groupby('Item Name')['Total Amount'].sum().nlargest(15).reset_index()
+                    fig12 = px.bar(top_inv, x='Total Amount', y='Item Name', orientation='h',
+                                   color='Total Amount', color_continuous_scale='Blues')
+                    apply_template(fig12, "Top 15 Products by Invoice Value")
+                    fig12.update_layout(yaxis=dict(autorange='reversed'), coloraxis_showscale=False)
+                    st.plotly_chart(fig12, use_container_width=True)
+
+            with c2:
+                # Customer breakdown
+                if 'Customer Name' in inv2_f.columns and 'Total Amount' in inv2_f.columns:
+                    cust_inv = inv2_f.groupby('Customer Name')['Total Amount'].sum().reset_index().sort_values('Total Amount', ascending=False)
+                    fig13 = px.pie(cust_inv.head(10), names='Customer Name', values='Total Amount',
+                                   hole=0.4, color_discrete_sequence=PALETTE)
+                    apply_template(fig13, "Invoice Revenue by Customer")
+                    st.plotly_chart(fig13, use_container_width=True)
+
+            # Monthly invoice trend (Full Year view)
+            if view_mode == "All Months (Full Year)" and 'Month' in overall_inv2_df.columns:
+                mon_inv = overall_inv2_df.groupby('Month').agg(
+                    Revenue=('Total Amount','sum'),
+                    Invoices=('Invoice No.','nunique'),
+                    Qty=('Quantity','sum')
+                ).reset_index().sort_values('Month')
+                mon_inv['Month_Label'] = mon_inv['Month'].apply(
+                    lambda m: pd.Timestamp(str(m)+"-01").strftime("%b %Y"))
+                mon_inv['Avg_Invoice'] = mon_inv['Revenue'] / mon_inv['Invoices']
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    fig14 = px.bar(mon_inv, x='Month_Label', y='Revenue',
+                                   color_discrete_sequence=[PALETTE[0]], text_auto='.2s')
+                    apply_template(fig14, "Monthly Invoice Revenue")
+                    st.plotly_chart(fig14, use_container_width=True)
+                with c2:
+                    fig15 = go.Figure()
+                    fig15.add_bar(x=mon_inv['Month_Label'], y=mon_inv['Invoices'],
+                                  name='Invoices', marker_color=PALETTE[1], yaxis='y')
+                    fig15.add_scatter(x=mon_inv['Month_Label'], y=mon_inv['Avg_Invoice'],
+                                      name='Avg Invoice ₹', mode='lines+markers',
+                                      line=dict(color=PALETTE[2], width=2.5), yaxis='y2')
+                    apply_template(fig15, "Invoice Count & Avg Invoice Value")
+                    fig15.update_layout(
+                        yaxis=dict(title='Invoice Count'),
+                        yaxis2=dict(title='Avg Invoice ₹', overlaying='y', side='right'),
+                        legend=dict(orientation='h', y=1.1, bgcolor='rgba(0,0,0,0)')
+                    )
+                    st.plotly_chart(fig15, use_container_width=True)
+
+            # Category mix from invoices
+            if 'Category' in inv2_f.columns and 'Total Amount' in inv2_f.columns:
+                st.markdown('<div class="section-title">🏷️ Invoice Category Mix</div>', unsafe_allow_html=True)
+                cat_inv = inv2_f.groupby('Category').agg(
+                    Revenue=('Total Amount','sum'),
+                    Qty=('Quantity','sum'),
+                    Count=('Invoice No.','count')
+                ).reset_index()
+                c1, c2 = st.columns(2)
+                with c1:
+                    fig16 = px.pie(cat_inv, names='Category', values='Revenue', hole=0.4,
+                                   color_discrete_sequence=PALETTE)
+                    apply_template(fig16, "Invoice Revenue by Category")
+                    st.plotly_chart(fig16, use_container_width=True)
+                with c2:
+                    fig17 = px.bar(cat_inv, x='Category', y='Qty',
+                                   color='Category', color_discrete_sequence=PALETTE, text_auto=True)
+                    apply_template(fig17, "Units Invoiced by Category")
+                    fig17.update_layout(showlegend=False)
+                    st.plotly_chart(fig17, use_container_width=True)
+
+            # Invoice data table
+            st.markdown('<div class="section-title">📋 Invoice Details Table</div>', unsafe_allow_html=True)
+            show_inv2 = [c for c in ['Invoice No.','Bill Date','Customer Name','Item Name',
+                          'Category','Quantity','Unit Price','Discount','Tax Percent','Total Amount']
+                          if c in inv2_f.columns]
+            inv2_table = inv2_f[show_inv2].copy().head(200)
+            if 'Total Amount' in inv2_table.columns:
+                inv2_table['Total Amount'] = inv2_table['Total Amount'].apply(
+                    lambda x: f"₹{x:,.2f}" if pd.notna(x) else '-')
+            st.dataframe(inv2_table, use_container_width=True, hide_index=True)
+
+        # ── DOWNLOAD ──────────────────────────────────────────────────────────
+        if inv_f is not None or inv2_f is not None:
+            st.markdown('<div class="section-title">📥 Export Overall Report</div>', unsafe_allow_html=True)
+            dl_sheets = {}
+            if inv_f is not None:  dl_sheets['Inventory'] = inv_f
+            if inv2_f is not None: dl_sheets['Invoices']  = inv2_f
+            excel_or = to_excel_bytes(dl_sheets)
+            st.download_button("📥 Download Overall Report Excel",
+                               data=excel_or,
+                               file_name=f"lingam_overall_report_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                               mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 # ────────────────────────────────────
 # FOOTER
